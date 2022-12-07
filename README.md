@@ -1,3 +1,2 @@
 ## Missing data methods
-MICE, EM algorithm, IPW  
-missingness embedding regression
+EM algorithm with simple & multivariate linear regression

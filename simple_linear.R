@@ -1,4 +1,5 @@
 library(tidyverse)
+library(progress)
 
 .pseudo_sum_x <- function(params, x, y, m, likelihood_mode) {
   x <- replace_na(x, -999)
@@ -89,10 +90,44 @@ m_step <- function(params, x, y, m, likelihood_mode) {
   ))
 }
 
+em <- function(params, x, y, m, likelihood_mode, maxit = 50, tol = 1e-5) {
+  for (i in seq_len(maxit)) {
+    prev_params <- params
+    params <- m_step(params, x, y, m, likelihood_mode)
+    err <- max(abs(unlist(prev_params) - unlist(params)))
+    if (err < tol) {
+      return(params)
+    }
+  }
+}
+
+em_bootstrapping <- function(B, params, x, y, m, ...) {
+  pb <- progress_bar$new(
+    format = "  downloading [:bar] :percent eta: :eta",
+    total = B, clear = FALSE, width= 60)
+  n <- length(y)
+  boot_ests <- matrix(NA, nrow = B, ncol = length(params))
+  colnames(boot_ests) <- names(params)
+  for (b in seq_len(B)) {
+    pb$tick()
+    boot_idx <- sample(n, n, replace = TRUE)
+    boot_x <- x[boot_idx]
+    boot_y <- y[boot_idx]
+    boot_m <- m[boot_idx]
+    boot_ests[b,] <- unlist(em(params, boot_x, boot_y, boot_m, ...))
+  }
+  return(boot_ests)
+}
+
+boot_confint <- function(boot_ests) {
+  ests %>% as.data.frame() %>% gather() %>% group_by(key) %>%
+    summarise(lower_bd = quantile(value, 0.025),
+              upper_bd = quantile(value, 0.975))
+}
 
 set.seed(823)
 x <- rnorm(200, mean = 10, sd = 5)
-y <- rnorm(200, mean = 10 + 2 * x, sd = 1)
+y <- rnorm(200, mean = 10 + 2 * x, sd = 5)
 p <- 0.8
 m <- rbinom(200, 1, p)
 x <- ifelse(m == 1, x, NA)
