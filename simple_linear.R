@@ -1,55 +1,49 @@
 library(tidyverse)
 library(progress)
 
-.pseudo_sum_x <- function(params, x, y, m, likelihood_mode) {
+pseduo_x <- function(params, x, y, m) {
+  # mask NA with an arbitrary value
   x <- replace_na(x, -999)
-  
+  # decompose params
   mu_1 <- params$mu_1
   sigma_1_sq <- params$sigma_1_sq
   sigma_sq <- params$sigma_sq
   b1 <- params$b1
   b2 <- params$b2
-  
+  # reverse conditional distribution f(x|y) mean
   ksi <- (b2 * (y - b1) * sigma_1_sq + mu_1 * sigma_sq) / (b2^2 * sigma_1_sq + sigma_sq)
-  
+  return(m * x + (1 - m) * ksi)
+}
+
+.pseudo_sum_x <- function(params, x, y, m, likelihood_mode) {
+  pseduo_x_ <- pseduo_x(params, x, y, m) 
   switch (likelihood_mode,
-    "full" = return(sum(m * x) + sum((1 - m) * ksi)),
-    "observed" = return(sum(m * x))
+    "full" = return(sum(pseduo_x_)),
+    "observed" = return(sum(m * pseduo_x_))
   )
 }
 
+pseduo_x_sq <- function(params, x, y, m) {
+  # mask NA with an arbitrary value
+  x <- replace_na(x, -999)
+  # decompose params
+  mu_1 <- params$mu_1
+  sigma_1_sq <- params$sigma_1_sq
+  sigma_sq <- params$sigma_sq
+  b1 <- params$b1
+  b2 <- params$b2
+  # reverse conditional distribution f(x|y) mean & var
+  ksi <- (b2 * (y - b1) * sigma_1_sq + mu_1 * sigma_sq) / (b2^2 * sigma_1_sq + sigma_sq)
+  phi_sq <- sigma_1_sq * sigma_sq / (b2^2 * sigma_1_sq + sigma_sq)
+  return(m * x^2 + (1 - m) * (ksi^2 + phi_sq))
+}
 
 .pseduo_sum_x_sq <- function(params, x, y, m, likelihood_mode) {
-  x <- replace_na(x, -999)
-  
-  mu_1 <- params$mu_1
-  sigma_1_sq <- params$sigma_1_sq
-  sigma_sq <- params$sigma_sq
-  b1 <- params$b1
-  b2 <- params$b2
-  
-  n <- length(x)
-  ksi <- (b2 * (y - b1) * sigma_1_sq + mu_1 * sigma_sq) / (b2^2 * sigma_1_sq + sigma_sq)
-  phi_sq <- rep(sigma_1_sq * sigma_sq / (b2^2 * sigma_1_sq + sigma_sq), n)
-  
+  pseduo_x_sq_ <- pseduo_x_sq(params, x, y, m) 
   switch (likelihood_mode,
-          "full" = return(sum(m * x^2) + sum((1 - m) * (ksi^2 + phi_sq))),
-          "observed" = return(sum(m * x^2))
+          "full" = return(sum(pseduo_x_sq_)),
+          "observed" = return(sum(m * pseduo_x_sq_))
   )
-}
-
-.pseduo_sum_xy <- function(params, x, y, m) {
-  x <- replace_na(x, -999)
-  
-  mu_1 <- params$mu_1
-  sigma_1_sq <- params$sigma_1_sq
-  sigma_sq <- params$sigma_sq
-  b1 <- params$b1
-  b2 <- params$b2
-  
-  ksi <- (b2 * (y - b1) * sigma_1_sq + mu_1 * sigma_sq) / (b2^2 * sigma_1_sq + sigma_sq)
-  out <- sum(m * x * y) + sum((1 - m) * ksi * y)
-  return(out)
 }
 
 
@@ -64,7 +58,7 @@ m_step <- function(params, x, y, m, likelihood_mode) {
   B <- .pseduo_sum_x_sq(params, x, y, m, "full")
   A.observed <- .pseudo_sum_x(params, x, y, m, "observed")
   B.observed <- .pseduo_sum_x_sq(params, x, y, m, "observed")
-  C <- .pseduo_sum_xy(params, x, y, m)
+  C <- sum(pseduo_x(params, x, y, m) * y)
   
   n <- length(m)
   if (likelihood_mode == "full") {
@@ -91,6 +85,7 @@ m_step <- function(params, x, y, m, likelihood_mode) {
 }
 
 em <- function(params, x, y, m, likelihood_mode, maxit = 50, tol = 1e-5) {
+  # estimation
   for (i in seq_len(maxit)) {
     prev_params <- params
     params <- m_step(params, x, y, m, likelihood_mode)
@@ -99,6 +94,44 @@ em <- function(params, x, y, m, likelihood_mode, maxit = 50, tol = 1e-5) {
       return(params)
     }
   }
+}
+
+em_vcov <- function(params, x, y, m) {
+  # decompose params
+  mu_1 <- params$mu_1
+  sigma_1_sq <- params$sigma_1_sq
+  sigma_sq <- params$sigma_sq
+  b1 <- params$b1
+  b2 <- params$b2
+  # augmented data
+  pseduo_x_ <- pseduo_x(params, x, y, m)
+  pseduo_x_sq_ <- pseduo_x_sq(params, x, y, m)
+  # inference: score
+  fs_b1 <- 1 / sigma_sq * (y - b1 - b2 * pseduo_x_)
+  fs_b2 <-
+    1 / sigma_sq * (y * pseduo_x_ - b1 * pseduo_x_ - b2 * pseduo_x_sq_)
+  fs_sigma_sq <-
+    -1 / (2 * sigma_sq) + 1 / (2 * sigma_sq ^ 2) * (y ^ 2 - 2 * b1 * y - 2 * b2 * y * pseduo_x_ +
+                                                      b1 ^ 2 + 2 * b1 * b2 * pseduo_x_ + b2 ^ 2 * pseduo_x_sq_)
+  fs_mu_1 <- 1 / sigma_1_sq * (pseduo_x_ - mu_1)
+  fs_sigma_1_sq <-
+    -1 / (2 * sigma_1_sq) + 1 / (2 * sigma_1_sq ^ 2) * (pseduo_x_sq_ - 2 * mu_1 * pseduo_x_ + mu_1 ^ 2)
+  score <- cbind(fs_mu_1, fs_sigma_1_sq, fs_sigma_sq, fs_b1, fs_b2)
+  colnames(score) <- names(params)
+  # score -to-> fisher information
+  n <- length(y)
+  fisher_info <- solve(n * var(score))
+  return(fisher_info)
+}
+
+em_theoretical_ci <- function(est_params, x, y, m) {
+  out <- est_params %>% as.data.frame() %>% gather()
+  se <- sqrt(diag(em_vcov(est_params, x, y, m)))
+  out %>% mutate(lower_bd = value + qnorm(0.025) * se,
+                 upper_db = value + qnorm(0.975) * se,
+                 value = NULL) %>% 
+    arrange(key) %>% 
+    tibble()
 }
 
 em_bootstrapping <- function(B, params, x, y, m, ...) {
@@ -120,37 +153,7 @@ em_bootstrapping <- function(B, params, x, y, m, ...) {
 }
 
 boot_confint <- function(boot_ests) {
-  ests %>% as.data.frame() %>% gather() %>% group_by(key) %>%
+  boot_ests %>% as.data.frame() %>% gather() %>% group_by(key) %>%
     summarise(lower_bd = quantile(value, 0.025),
               upper_bd = quantile(value, 0.975))
 }
-
-set.seed(823)
-x <- rnorm(200, mean = 10, sd = 5)
-y <- rnorm(200, mean = 10 + 2 * x, sd = 5)
-p <- 0.8
-m <- rbinom(200, 1, p)
-x <- ifelse(m == 1, x, NA)
-
-
-params <- list(
-  mu_1 = 1,
-  sigma_1_sq = 1,
-  sigma_sq = 1,
-  b1 = 0,
-  b2 = 0
-)
-
-
-print(mean(m))
-for (i in seq_len(20)) {
-  params <- m_step(params, x, y, m, "full")
-}
-print(round(unlist(params), 3))
-for (i in seq_len(20)) {
-  params <- m_step(params, x, y, m, "observed")
-}
-print(round(unlist(params), 3))
-print(c(sum((residuals(lm(y ~ x)))^2)/(length(y) - 2), coef(lm(y ~ x))))
-
-

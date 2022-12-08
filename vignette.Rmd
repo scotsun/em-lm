@@ -1,0 +1,46 @@
+---
+title: "vignette"
+author: "Scott Sun"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(progress)
+source("./simple_linear.R")
+```
+
+## simple linear regression
+
+```{r}
+x <- rnorm(200, mean = 10, sd = sqrt(25))
+y <- rnorm(200, mean = 10 + 2 * x, sd = sqrt(25))
+p <- 0.8
+m <- rbinom(200, 1, p)
+x <- ifelse(m == 1, x, NA)
+```
+
+```{r}
+params <- list(
+  mu_1 = 1,
+  sigma_1_sq = 1,
+  sigma_sq = 1,
+  b1 = 0,
+  b2 = 0
+)
+
+params <- em(params, x, y, m, likelihood_mode = "full")
+print(mean(m))
+print(c(sum((residuals(lm(y ~ x)))^2)/(length(y) - 2), coef(lm(y ~ x))))
+print(round(unlist(params), 3))
+```
+
+```{r}
+em_theoretical_ci(est_params = params, x, y, m)
+```
+
+```{r}
+boot_confint(em_bootstrapping(B = 5000, params, x, y, m, "full"))
+```
+

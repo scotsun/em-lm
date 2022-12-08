@@ -116,7 +116,7 @@ for (i in seq_len(40)) {
 }
 mean(!is.na(x1))
 params$b
-lm(y ~ 0 + X) %>% coef()
+
 
 
 
