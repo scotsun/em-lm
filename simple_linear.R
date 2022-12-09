@@ -85,7 +85,7 @@ m_step <- function(params, x, y, m, likelihood_mode) {
 }
 
 em <- function(params, x, y, m, likelihood_mode, maxit = 50, tol = 1e-5) {
-  # estimation
+  # iterative estimation
   for (i in seq_len(maxit)) {
     prev_params <- params
     params <- m_step(params, x, y, m, likelihood_mode)
@@ -94,6 +94,8 @@ em <- function(params, x, y, m, likelihood_mode, maxit = 50, tol = 1e-5) {
       return(params)
     }
   }
+  cat("error > tolerance, error:", err, "\n")
+  return(params)
 }
 
 em_vcov <- function(params, x, y, m) {

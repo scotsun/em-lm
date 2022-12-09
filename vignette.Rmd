@@ -37,10 +37,12 @@ print(round(unlist(params), 3))
 ```
 
 ```{r}
-em_theoretical_ci(est_params = params, x, y, m)
+em_theoretical_ci(est_params = params, x, y, m) %>% 
+  mutate_if(is.numeric, round, 3)
 ```
 
 ```{r}
-boot_confint(em_bootstrapping(B = 5000, params, x, y, m, "full"))
+boot_confint(em_bootstrapping(B = 5000, params, x, y, m, "full")) %>% 
+  mutate_if(is.numeric, round, 3)
 ```
 
