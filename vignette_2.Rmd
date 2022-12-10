@@ -44,7 +44,9 @@ params
 ```
 
 ```{r}
+tictoc::tic()
 em_bootstrapping(5000, params, y, X) %>% boot_confint()
+tictoc::toc()
 ```
 
 ```{r}
