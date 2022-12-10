@@ -121,9 +121,9 @@ em_vcov <- function(params, y, X) {
     score[i, 1:p] <- solve(Sigma_x) %*% (pseudo_x_[i, -1] - mu)
     # Sigma_x: diagonal elem
     score[i, (1 + p):(2 * p)] <-
-      diag(1 / 2 * (Sigma_x - (
+      diag(-1 / 2 * (solve(Sigma_x) - solve(Sigma_x) %*% (
         pseudo_x_sq_[-1,-1, i] - params$mu %o% pseudo_x_[i,-1] - t(params$mu %o% pseudo_x_[i,-1]) + mu %o% mu
-      )))
+      ) %*% solve(Sigma_x)))
     # sigma
     score[i, (2*p + 1)] <-  -1 / (2 * sigma_sq) + 
       1 / (2 * sigma_sq ^ 2) * (y[i]^2 - 2 * t(b) %*% pseudo_x_[i,] * y[i] + b %*% pseudo_x_sq_[,,i] %*% b)

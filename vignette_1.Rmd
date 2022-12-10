@@ -16,7 +16,7 @@ source("./simple_linear.R")
 ```{r}
 x <- rnorm(200, mean = 10, sd = sqrt(25))
 y <- rnorm(200, mean = 10 + 2 * x, sd = sqrt(25))
-p <- 0.8
+p <- 0.5
 m <- rbinom(200, 1, p)
 x <- ifelse(m == 1, x, NA)
 ```
@@ -30,10 +30,12 @@ params <- list(
   b2 = 0
 )
 
+params.obs <- em(params, x, y, m, likelihood_mode = "observed")
 params <- em(params, x, y, m, likelihood_mode = "full")
 print(mean(m))
 print(c(sum((residuals(lm(y ~ x)))^2)/(length(y) - 2), coef(lm(y ~ x))))
 print(round(unlist(params), 3))
+print(round(unlist(params.obs), 3))
 ```
 
 ```{r}
