@@ -82,7 +82,7 @@ m_step <- function(params, y, X) {
   ))
 }
 
-em <- function(params, y, X, maxit = 50, tol = 1e-5) {
+em <- function(params, y, X, maxit = 200, tol = 1e-5) {
   # iterative estimation
   for (i in seq_len(maxit)) {
     prev_params <- params

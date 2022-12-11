@@ -1,5 +1,5 @@
-source("./simple_linear.R")
-source("./complete_case.R")
+source("./methods/simple_linear.R")
+source("./methods/complete_case.R")
 
 # tuning parameters
 n <- 200

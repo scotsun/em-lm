@@ -10,51 +10,48 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
-# E-M Simple Linear Regression
-
 ```{r, echo=FALSE}
-summarizing_table <- function(simple_lm_simu_rlt, only_beta = FALSE) {
+summarizing_table <- function(lm_simu_rlt, p = 1, num_methods = 3, only_beta = FALSE) {
   if (only_beta) {
     tbl_names <- c(
         "",
-        "$\\beta_1$",
-        "$\\beta_2$"
+        paste0("$\\", paste("beta", seq(0,p), sep = "_"), "$")
       )
   } else {
     tbl_names <- c(
         "",
-        "$\\mu_1$",
-        "$\\sigma^2_1$",
+        paste0("$\\", paste("mu", seq_len(p), sep = "_"), "$"),
+        paste0("$\\", paste("sigma^2", seq_len(p), sep = "_"), "$"),
         "$\\sigma^2$",
-        "$\\beta_1$",
-        "$\\beta_2$"
+        paste0("$\\", paste("beta", seq(0,p), sep = "_"), "$")
       )
   }
-  est_m <- simple_lm_simu_rlt$estimates %>%
+  est_m <- lm_simu_rlt$estimates %>%
     group_by(estimator_type) %>%
     summarise_all(.funs = mean,) %>%
-    mutate_if(is.numeric, ~ as.character(signif(., digits = 3)))
-  est_v <- simple_lm_simu_rlt$estimates %>%
+    mutate_if(is.numeric, ~ as.character(round(., digits = 3)))
+  est_v <- lm_simu_rlt$estimates %>%
     group_by(estimator_type) %>%
     summarise_all(.funs = var) %>%
-    mutate_if(is.numeric, ~ as.character(signif(., digits = 3)))
-  est_coverage <- simple_lm_simu_rlt$coverage %>%
+    mutate_if(is.numeric, ~ as.character(round(., digits = 3)))
+  est_coverage <- lm_simu_rlt$coverage %>%
     group_by(estimator_type) %>%
     summarise_all(.funs = mean) %>%
-    mutate_if(is.numeric, ~ as.character(signif(., digits = 3)))
+    mutate_if(is.numeric, ~ as.character(round(., digits = 3)))
   rbind(est_m, est_v, est_coverage) %>%
     knitr::kable(
       booktabs = TRUE,
       col.names = tbl_names,
       escape = FALSE
     ) %>%
-    kableExtra::group_rows("Mean", 1, 3) %>%
-    kableExtra::group_rows("Variance", 4, 6) %>%
-    kableExtra::group_rows("Coverage rate", 7, 9) %>%
+    kableExtra::group_rows("Mean", 1, num_methods) %>%
+    kableExtra::group_rows("Variance", 1 + num_methods, 2 * num_methods) %>%
+    kableExtra::group_rows("Coverage rate", 2 * num_methods + 1, 3 * num_methods) %>%
     kableExtra::kable_styling(latex_options = "HOLD_position", font_size = 7)
 }
-
 ```
+
+# E-M Simple Linear Regression
 
 ```{r, echo=FALSE}
 high_missingness <- readRDS("./simulation_rlt/simple_linear/p50sigmaSq25.rds")
@@ -100,3 +97,21 @@ summarizing_table(high_missingness_misspec, only_beta = TRUE)
 summarizing_table(low_missingness_misspec, only_beta = TRUE)
 ```
 
+# E-M Multivariate Linear Regression
+
+```{r}
+multvariate_mcar <- readRDS("./simulation_rlt/mult_linear/gamma2p80sigmaSq25.rds")
+multvariate_mar <- readRDS("./simulation_rlt/mult_linear/gamma-12p80sigmaSq25.rds")
+```
+
+## MCAR
+
+```{r, echo=FALSE}
+summarizing_table(multvariate_mcar, p = 3, num_methods = 2)
+```
+
+## MAR
+
+```{r, echo=FALSE}
+summarizing_table(multvariate_mar, p = 3, num_methods = 2)
+```
