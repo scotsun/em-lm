@@ -33,7 +33,7 @@ params <- list(
 params.obs <- em(params, x, y, m, likelihood_mode = "observed")
 params <- em(params, x, y, m, likelihood_mode = "full")
 print(mean(m))
-print(c(sum((residuals(lm(y ~ x)))^2)/(length(y) - 2), coef(lm(y ~ x))))
+print(c(mean((residuals(lm(y ~ x)))^2), coef(lm(y ~ x))))
 print(round(unlist(params), 3))
 print(round(unlist(params.obs), 3))
 ```

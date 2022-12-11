@@ -1,0 +1,102 @@
+---
+title: "simulation results"
+author: "Scott Sun"
+date: "2022-12-11"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# E-M Simple Linear Regression
+
+```{r, echo=FALSE}
+summarizing_table <- function(simple_lm_simu_rlt, only_beta = FALSE) {
+  if (only_beta) {
+    tbl_names <- c(
+        "",
+        "$\\beta_1$",
+        "$\\beta_2$"
+      )
+  } else {
+    tbl_names <- c(
+        "",
+        "$\\mu_1$",
+        "$\\sigma^2_1$",
+        "$\\sigma^2$",
+        "$\\beta_1$",
+        "$\\beta_2$"
+      )
+  }
+  est_m <- simple_lm_simu_rlt$estimates %>%
+    group_by(estimator_type) %>%
+    summarise_all(.funs = mean,) %>%
+    mutate_if(is.numeric, ~ as.character(signif(., digits = 3)))
+  est_v <- simple_lm_simu_rlt$estimates %>%
+    group_by(estimator_type) %>%
+    summarise_all(.funs = var) %>%
+    mutate_if(is.numeric, ~ as.character(signif(., digits = 3)))
+  est_coverage <- simple_lm_simu_rlt$coverage %>%
+    group_by(estimator_type) %>%
+    summarise_all(.funs = mean) %>%
+    mutate_if(is.numeric, ~ as.character(signif(., digits = 3)))
+  rbind(est_m, est_v, est_coverage) %>%
+    knitr::kable(
+      booktabs = TRUE,
+      col.names = tbl_names,
+      escape = FALSE
+    ) %>%
+    kableExtra::group_rows("Mean", 1, 3) %>%
+    kableExtra::group_rows("Variance", 4, 6) %>%
+    kableExtra::group_rows("Coverage rate", 7, 9) %>%
+    kableExtra::kable_styling(latex_options = "HOLD_position", font_size = 7)
+}
+
+```
+
+```{r, echo=FALSE}
+high_missingness <- readRDS("./simulation_rlt/simple_linear/p50sigmaSq25.rds")
+mid_missingness <- readRDS("./simulation_rlt/simple_linear/p80sigmaSq25.rds")
+low_missingness <- readRDS("./simulation_rlt/simple_linear/p95sigmaSq25.rds")
+high_missingness_high_noise <- readRDS("./simulation_rlt/simple_linear/p50sigmaSq100.rds")
+```
+
+## Missingness rate
+### Low
+```{r, echo=FALSE}
+summarizing_table(low_missingness)
+```
+
+### Medium
+```{r, echo=FALSE}
+summarizing_table(mid_missingness)
+```
+
+### High
+```{r, echo=FALSE}
+summarizing_table(high_missingness)
+```
+## High Noise-signal ratio
+```{r, echo=FALSE}
+summarizing_table(high_missingness_high_noise)
+```
+
+## Misspecified X (using a Normal distribution to model a right skewed Exponential distributed data)
+
+```{r, echo=FALSE}
+high_missingness_misspec <- readRDS("./simulation_rlt/simple_linear/misspecp50sigmaSq25.rds") %>% 
+  lapply(function(x) x[,-(1:3)])
+low_missingness_misspec <- readRDS("./simulation_rlt/simple_linear/misspecp95sigmaSq25.rds") %>% 
+  lapply(function(x) x[,-(1:3)])
+```
+
+```{r, echo=FALSE}
+summarizing_table(high_missingness_misspec, only_beta = TRUE)
+```
+
+```{r, echo=FALSE}
+summarizing_table(low_missingness_misspec, only_beta = TRUE)
+```
+

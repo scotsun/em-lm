@@ -87,7 +87,7 @@ m_step <- function(params, x, y, m, likelihood_mode) {
     new_sigma_1_sq <- 2 / n * (B / 2 - mu_1 * A + n / 2 * mu_1 ^ 2)
   } else if (likelihood_mode == "observed") {
     new_mu_1 <- A.observed / sum(m)
-    new_sigma_1_sq <- 2 / sum(m) * (B.observed / 2 - mu_1 * A.observed + n / 2 * mu_1 ^ 2)
+    new_sigma_1_sq <- 2 / sum(m) * (B.observed / 2 - mu_1 * A.observed + sum(m) / 2 * mu_1 ^ 2)
   }
   new_sigma_sq <- 2 / n * (sum(y ^ 2) / 2 -
                              b1 * sum(y) -
@@ -115,7 +115,7 @@ m_step <- function(params, x, y, m, likelihood_mode) {
 #' @param maxit
 #' @param tol
 #' @return maximized parameter point estimates after a convergence is met
-em <- function(params, x, y, m, likelihood_mode, maxit = 50, tol = 1e-5) {
+em <- function(params, x, y, m, likelihood_mode, maxit = 200, tol = 1e-5) {
   # iterative estimation
   for (i in seq_len(maxit)) {
     prev_params <- params
