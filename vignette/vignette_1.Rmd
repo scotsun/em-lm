@@ -14,8 +14,9 @@ source("../methods/simple_linear.R")
 ## simple linear regression
 
 ```{r}
-x <- rnorm(200, mean = 10, sd = sqrt(25))
-y <- rnorm(200, mean = 10 + 2 * x, sd = sqrt(10))
+# x <- rnorm(200, mean = 10, sd = sqrt(25))
+x <- rexp(200, 0.1)
+y <- rnorm(200, mean = 5 + 5 * x, sd = sqrt(10))
 p <- 0.8
 m <- rbinom(200, 1, p)
 x <- ifelse(m == 1, x, NA)

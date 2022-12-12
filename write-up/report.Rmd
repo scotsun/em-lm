@@ -1,0 +1,188 @@
+---
+title: "**Enhancing Linear Regression with EM algorithm <br> to Handle Missing Data**"
+subtitle: BIOSTAT 823 Final Project Report
+author: |
+    Scott Sun  
+    GitHub repo: https://github.com/scotsun/bios823final_project
+output: 
+    pdf_document:
+      number_sections: yes
+      keep_tex: yes
+      extra_dependencies: ["stfloats"]
+geometry: margin=2cm
+classoption: twocolumn
+bibliography: res/report.bib
+link-citations: yes
+csl: res/jbi.csl
+abstract: |
+  Data can be missing for different reasons, but sometimes the missingness is a part of the data collection process. Unbiased and efficient estimation of the parameters governing the response mean model requires the missing data to be appropriately addressed. In this project, we combined the EM algorithm with General Linear Model, from derivation to coding, and compared its performance with Complete-Case Analysis. The comparison is demonstrated through numerical simulations under various conditions: different degrees of missingness, different noise scales, and different missingness mechanisms.
+header-includes:
+  - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+source("./res/utils.R")
+# simple
+high_missingness <- readRDS("../simulation_rlt/simple_linear/p50sigmaSq25.rds")
+mid_missingness <- readRDS("../simulation_rlt/simple_linear/p80sigmaSq25.rds")
+low_missingness <- readRDS("../simulation_rlt/simple_linear/p95sigmaSq25.rds")
+high_missingness_high_noise <- readRDS("../simulation_rlt/simple_linear/p50sigmaSq100.rds")
+## misspecification
+high_missingness_misspec <- readRDS("../simulation_rlt/simple_linear/misspecp50sigmaSq25.rds") %>% 
+  lapply(function(x) x[,-(1:3)])
+low_missingness_misspec <- readRDS("../simulation_rlt/simple_linear/misspecp95sigmaSq25.rds") %>% 
+  lapply(function(x) x[,-(1:3)])
+# multiple
+multvariate_mcar <- readRDS("../simulation_rlt/mult_linear/gamma2p80sigmaSq25.rds")
+multvariate_mar <- readRDS("../simulation_rlt/mult_linear/gamma-12p80sigmaSq25.rds")
+```
+
+# Introduction
+# Missingness Mechanisms
+In framework defined by Little and Rubin @little2019statistical, missingness mechanisms are classified into three categories: **Missing Completely at Random (MCAR)**, **Missing at Random (MAR)**, and Not Missing at Random. Within the scope of this project, we will only discuss MCAR and MAR.
+
+## Missing Completely at Random
+If the likelihood of being observed is independent of any variables, the missingness mechanism is MCAR. That is,
+$$
+\Pr(R|X, \boldsymbol\Theta) = \Pr(R| \boldsymbol\Theta).
+$$
+MCAR is a strong ideal assumption on the mechanism, which assumes the missingness is unrelated to all variables. It indicates that the pattern is not affected by the studied subjects. For instance, when we research blood samples, several samples can be contaminated during the delivery process. Thus, we cannot collect information from these polluted specimens. Nothing about the specimens themselves made them more or less likely to be contaminated.
+
+## Missing at Random
+If the likelihood of being observed depends only on those fully observed variables, the missingness mechanism is MAR. That is,
+$$
+\Pr(R|X, \boldsymbol\Theta) = \Pr(R|X_{obs}, \boldsymbol\Theta).
+$$
+Compared to MCAR, MAR is a less constrained statement. Based on this definition, MCAR can be seen as an extreme, special case of MAR [@schafer2002missing].
+
+# Notation
+
+# Methods
+## Complete-Case Analysis
+
+As we have introduced in Section 1, CC analysis is a common method in the presence of data missingness. After removing the incomplete observations from the data set, we can perform all kinds of calculation on the remaining data. These observations are indexed by elements in $S$. For all $i \in S$, $R_i = 1$. As a result, the likelihood function is modified to $L_{CC}(\boldsymbol{\Theta})$.
+
+$$
+\begin{aligned}
+L_{CC}(\boldsymbol\Theta)
+= \prod_{i \in S} \big[ f(y_i, x_i; \boldsymbol\Theta)f(z_i|y_i, x_i; \boldsymbol\Theta) \big]
+\end{aligned}
+$$
+
+Then, the CC analysis obtains $\hat{\boldsymbol\Theta}$ by maximizing $L_{CC}(\boldsymbol\Theta)$. There are a few circumstances where the CC analysis can yield valid estimators. When the missingness mechanism is MCAR, the estimator is generally unbiased and consistent because the completeness is independent of all variables in the data set. The complete cases can be viewed as random samples from an imagined full data set [@schafer2002missing, @seaman2013review]. In our specific ODS design notations, $\Pr(R = 1|X, Y; \boldsymbol\Theta) = \Pr(R = 1)$. Second, the CC analysis estimator can have negligible bias under a weaker condition: the missingness mechanism is MAR, but it is independent of the response variable given the observed predictor variables. This assumes the mean model is correctly specified [@seaman2013review]. In our notations, $\Pr(R = 1|X, Y; \boldsymbol\Theta) = \Pr(R = 1 | X; \boldsymbol\Theta)$. 
+
+
+## Maximum Likelihood EM Algorithm
+
+EM algorithm is a iterative optimization process to calculate the maximum likelihood estimates of parameters when there exist hidden variables or missing data [@dempster1977maximum]. As the name directly tells, it consists of two major step: expectation (E-step) and maximization (M-step).
+
+\begin{algorithm}
+\DontPrintSemicolon
+\SetAlgoLined
+\SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+\Input{Initial guess on the parameters}
+\Output{MLE}
+\BlankLine
+initialization $\boldsymbol{\hat{\Theta}}^{(0)}$\;
+\While{k < max-iteration}{
+    $\boldsymbol{\hat{\Theta}}^{(k)} = argmax~\mathbb{E}_{\boldsymbol\Theta}[\log L|\boldsymbol{\hat{\Theta}}^{(k-1)}, X_{obs}]$\;
+    $e = \boldsymbol{\hat{\Theta}}^{(k)} - \boldsymbol{\hat{\Theta}}^{(k-1)}$\;
+    \eIf{$\max{|e|}$ < tolerance}{
+        return $\boldsymbol{\hat{\Theta}}^{(k)}$\;
+    }{
+        continue\;
+    }
+}
+\caption{M-step of EM algorithm}
+\end{algorithm} 
+
+### Point Estimates
+### Standard Error
+# Simulation Studies
+
+## Simple Linear Regression
+
+### Varied Missingness Rate and Noise Scale
+
+\begin{table}
+\caption{Here you can type in your caption}
+```{r, echo=FALSE}
+summarizing_table(low_missingness)
+```
+\end{table}
+
+
+\begin{table}
+\caption{Here you can type in your caption}
+```{r, echo=FALSE}
+summarizing_table(mid_missingness)
+```
+\end{table}
+
+\begin{table}
+\caption{Here you can type in your caption}
+```{r, echo=FALSE}
+summarizing_table(high_missingness)
+```
+\end{table}
+
+\begin{table}
+\caption{Here you can type in your caption}
+```{r, echo=FALSE}
+summarizing_table(high_missingness_high_noise)
+```
+\end{table}
+
+### Misspecified predictor distribution
+A Normal distribution is used to model a right skewed data that was originally designed to follow a $Exp(\lambda = 0.1)$. We assess estimators performance under misspecification with two missingness rates: 50% and 5%.
+
+
+\begin{table}
+\caption{Here you can type in your caption}
+```{r, echo=FALSE}
+summarizing_table(high_missingness_misspec, only_beta = TRUE)
+```
+\end{table}
+
+\begin{table}
+\caption{Here you can type in your caption}
+```{r, echo=FALSE}
+summarizing_table(low_missingness_misspec, only_beta = TRUE)
+```
+\end{table}
+
+## Multivariate Linear Regression
+
+### MAR independent of y
+
+\begin{table*}[bp]
+\caption{Here you can type in your caption}
+```{r, echo=FALSE}
+summarizing_table(multvariate_mcar, p = 3, num_methods = 2, latex_opt = NULL)
+```
+\end{table*}
+
+### MAR dependent of y
+
+\begin{table*}[bp]
+\caption{Here you can type in your caption}
+```{r, echo=FALSE}
+summarizing_table(multvariate_mar, p = 3, num_methods = 2, latex_opt = NULL)
+```
+\end{table*}
+
+# Discussion
+
+The simulation results corroborated our expectations that linear regression augmented by the EM algorithm generally outperformed CC analysis. It maximized the usage of all observed information without dropping any incomplete observations. The simulation results provided us with a few critical take-home messages. We realized that high missingness rates require more iterations of M-steps to have the algorithm achieve a convergence. Moreover, missingness, along with the noise, weakened the estimator's efficiency. Based on the simple linear regression setting, we found that applying EM over full likelihood generally performs better than using it over observed likelihood. Implementing the full likelihood, we had higher coverage probability on the predictor parameters and slightly better efficiency in estimating linear model coefficients. ML approach with the EM algorithm was always more efficient than CC, and the difference became more apparent when the degree of missingness increased. 
+
+An interesting observation was that the misspecification of the predictor's distribution did not obviously hurt the estimation on $\beta$ for both methods. It was reasonable that CC was not affected as the ordinary linear regression did not require any assumption on $X$ and CC is theoretically unbiased when the missingness mechanism is MCAR. On the contrary, the EM algorithm demanded explicit modeling of the likelihood function, which involved the distribution of $X$. In the derivation, the estimation of $\beta$ depended on $\mu$ and $\Sigma$. Theoretically, incorrect estimation of these predictor parameters can eventually influence the estimation of $\beta$. However, the EM estimator seemed to be more robust than the expectation.
+
+[under MAR cc is bad (sometimes), em is good]
+
+
+# Conclusion
+
+
+## Reference {-}

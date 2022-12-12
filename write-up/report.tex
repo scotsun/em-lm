@@ -1,0 +1,558 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+  twocolumn]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=2cm]{geometry}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newlength{\cslentryspacingunit} % times entry-spacing
+\setlength{\cslentryspacingunit}{\parskip}
+\newenvironment{CSLReferences}[2] % #1 hanging-ident, #2 entry spacing
+ {% don't indent paragraphs
+  \setlength{\parindent}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+  \let\oldpar\par
+  \def\par{\hangindent=\cslhangindent\oldpar}
+  \fi
+  % set entry spacing
+  \setlength{\parskip}{#2\cslentryspacingunit}
+ }%
+ {}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{#1\hfill\break}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{#1}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{#1}\break}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{stfloats}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same} % disable monospaced font for URLs
+\hypersetup{
+  pdftitle={Enhancing Linear Regression with EM algorithm   to Handle Missing Data},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{\textbf{Enhancing Linear Regression with EM algorithm to Handle
+Missing Data}}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{BIOSTAT 823 Final Project Report}
+\author{Scott Sun\\
+GitHub repo: \url{https://github.com/scotsun/bios823final_project}}
+\date{}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+Data can be missing for different reasons, but sometimes the missingness
+is a part of the data collection process. Unbiased and efficient
+estimation of the parameters governing the response mean model requires
+the missing data to be appropriately addressed. In this project, we
+combined the EM algorithm with General Linear Model, from derivation to
+coding, and compared its performance with Complete-Case Analysis. The
+comparison is demonstrated through numerical simulations under various
+conditions: different degrees of missingness, different noise scales,
+and different missingness mechanisms.
+\end{abstract}
+
+\hypertarget{introduction}{%
+\section{Introduction}\label{introduction}}
+
+\hypertarget{missingness-mechanisms}{%
+\section{Missingness Mechanisms}\label{missingness-mechanisms}}
+
+In framework defined by Little and Rubin
+{[}\protect\hyperlink{ref-little2019statistical}{1}{]}, missingness
+mechanisms are classified into three categories: \textbf{Missing
+Completely at Random (MCAR)}, \textbf{Missing at Random (MAR)}, and Not
+Missing at Random. Within the scope of this project, we will only
+discuss MCAR and MAR.
+
+\hypertarget{missing-completely-at-random}{%
+\subsection{Missing Completely at
+Random}\label{missing-completely-at-random}}
+
+If the likelihood of being observed is independent of any variables, the
+missingness mechanism is MCAR. That is, \[
+\Pr(R|X, \boldsymbol\Theta) = \Pr(R| \boldsymbol\Theta).
+\] MCAR is a strong ideal assumption on the mechanism, which assumes the
+missingness is unrelated to all variables. It indicates that the pattern
+is not affected by the studied subjects. For instance, when we research
+blood samples, several samples can be contaminated during the delivery
+process. Thus, we cannot collect information from these polluted
+specimens. Nothing about the specimens themselves made them more or less
+likely to be contaminated.
+
+\hypertarget{missing-at-random}{%
+\subsection{Missing at Random}\label{missing-at-random}}
+
+If the likelihood of being observed depends only on those fully observed
+variables, the missingness mechanism is MAR. That is, \[
+\Pr(R|X, \boldsymbol\Theta) = \Pr(R|X_{obs}, \boldsymbol\Theta).
+\] Compared to MCAR, MAR is a less constrained statement. Based on this
+definition, MCAR can be seen as an extreme, special case of MAR
+{[}\protect\hyperlink{ref-schafer2002missing}{2}{]}.
+
+\hypertarget{notation}{%
+\section{Notation}\label{notation}}
+
+\hypertarget{methods}{%
+\section{Methods}\label{methods}}
+
+\hypertarget{complete-case-analysis}{%
+\subsection{Complete-Case Analysis}\label{complete-case-analysis}}
+
+As we have introduced in Section 1, CC analysis is a common method in
+the presence of data missingness. After removing the incomplete
+observations from the data set, we can perform all kinds of calculation
+on the remaining data. These observations are indexed by elements in
+\(S\). For all \(i \in S\), \(R_i = 1\). As a result, the likelihood
+function is modified to \(L_{CC}(\boldsymbol{\Theta})\).
+
+\[
+\begin{aligned}
+L_{CC}(\boldsymbol\Theta)
+= \prod_{i \in S} \big[ f(y_i, x_i; \boldsymbol\Theta)f(z_i|y_i, x_i; \boldsymbol\Theta) \big]
+\end{aligned}
+\]
+
+Then, the CC analysis obtains \(\hat{\boldsymbol\Theta}\) by maximizing
+\(L_{CC}(\boldsymbol\Theta)\). There are a few circumstances where the
+CC analysis can yield valid estimators. When the missingness mechanism
+is MCAR, the estimator is generally unbiased and consistent because the
+completeness is independent of all variables in the data set. The
+complete cases can be viewed as random samples from an imagined full
+data set {[}\protect\hyperlink{ref-seaman2013review}{3}{]}. In our
+specific ODS design notations,
+\(\Pr(R = 1|X, Y; \boldsymbol\Theta) = \Pr(R = 1)\). Second, the CC
+analysis estimator can have negligible bias under a weaker condition:
+the missingness mechanism is MAR, but it is independent of the response
+variable given the observed predictor variables. This assumes the mean
+model is correctly specified
+{[}\protect\hyperlink{ref-seaman2013review}{3}{]}. In our notations,
+\(\Pr(R = 1|X, Y; \boldsymbol\Theta) = \Pr(R = 1 | X; \boldsymbol\Theta)\).
+
+\hypertarget{maximum-likelihood-em-algorithm}{%
+\subsection{Maximum Likelihood EM
+Algorithm}\label{maximum-likelihood-em-algorithm}}
+
+EM algorithm is a iterative optimization process to calculate the
+maximum likelihood estimates of parameters when there exist hidden
+variables or missing data
+{[}\protect\hyperlink{ref-dempster1977maximum}{4}{]}. As the name
+directly tells, it consists of two major step: expectation (E-step) and
+maximization (M-step).
+
+\begin{algorithm}
+\DontPrintSemicolon
+\SetAlgoLined
+\SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+\Input{Initial guess on the parameters}
+\Output{MLE}
+\BlankLine
+initialization $\boldsymbol{\hat{\Theta}}^{(0)}$\;
+\While{k < max-iteration}{
+    $\boldsymbol{\hat{\Theta}}^{(k)} = argmax~\mathbb{E}_{\boldsymbol\Theta}[\log L|\boldsymbol{\hat{\Theta}}^{(k-1)}, X_{obs}]$\;
+    $e = \boldsymbol{\hat{\Theta}}^{(k)} - \boldsymbol{\hat{\Theta}}^{(k-1)}$\;
+    \eIf{$\max{|e|}$ < tolerance}{
+        return $\boldsymbol{\hat{\Theta}}^{(k)}$\;
+    }{
+        continue\;
+    }
+}
+\caption{M-step of EM algorithm}
+\end{algorithm}
+
+\hypertarget{point-estimates}{%
+\subsubsection{Point Estimates}\label{point-estimates}}
+
+\hypertarget{standard-error}{%
+\subsubsection{Standard Error}\label{standard-error}}
+
+\hypertarget{simulation-studies}{%
+\section{Simulation Studies}\label{simulation-studies}}
+
+\hypertarget{simple-linear-regression}{%
+\subsection{Simple Linear Regression}\label{simple-linear-regression}}
+
+\hypertarget{varied-missingness-rate-and-noise-scale}{%
+\subsubsection{Varied Missingness Rate and Noise
+Scale}\label{varied-missingness-rate-and-noise-scale}}
+
+\begin{table}
+\caption{Here you can type in your caption}
+\begingroup\fontsize{7}{9}\selectfont
+
+\begin{tabu} to \linewidth {>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X}
+\toprule
+ & $\mu_1$ & $\sigma^2_1$ & $\sigma^2$ & $\beta_0$ & $\beta_1$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Mean}}\\
+\hspace{1em}cc & 10.001 & 24.989 & 24.717 & 10.016 & 1.998\\
+\hspace{1em}full & 10.001 & 24.867 & 24.722 & 10.012 & 1.999\\
+\hspace{1em}observed & 10.001 & 24.858 & 24.728 & 10.01 & 1.999\\
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Variance}}\\
+\hspace{1em}cc & 0.133 & 6.564 & 6.204 & 0.669 & 0.005\\
+\hspace{1em}full & 0.128 & 6.302 & 6.193 & 0.662 & 0.005\\
+\hspace{1em}observed & 0.133 & 6.495 & 6.198 & 0.662 & 0.005\\
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Coverage rate}}\\
+\hspace{1em}cc & 0.946 & 0.946 & 0.942 & 0.95 & 0.948\\
+\hspace{1em}full & 0.948 & 0.945 & 0.946 & 0.954 & 0.953\\
+\hspace{1em}observed & 0.942 & 0.942 & 0.947 & 0.953 & 0.953\\
+\bottomrule
+\end{tabu}
+\endgroup{}
+\end{table}
+
+\begin{table}
+\caption{Here you can type in your caption}
+\begingroup\fontsize{7}{9}\selectfont
+
+\begin{tabu} to \linewidth {>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X}
+\toprule
+ & $\mu_1$ & $\sigma^2_1$ & $\sigma^2$ & $\beta_0$ & $\beta_1$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Mean}}\\
+\hspace{1em}cc & 9.988 & 25.029 & 24.777 & 10.006 & 2\\
+\hspace{1em}full & 9.987 & 24.909 & 24.796 & 9.99 & 2.001\\
+\hspace{1em}observed & 9.988 & 24.872 & 24.831 & 9.981 & 2.002\\
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Variance}}\\
+\hspace{1em}cc & 0.159 & 7.985 & 7.945 & 0.785 & 0.006\\
+\hspace{1em}full & 0.134 & 6.932 & 7.868 & 0.74 & 0.006\\
+\hspace{1em}observed & 0.159 & 7.885 & 7.902 & 0.743 & 0.006\\
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Coverage rate}}\\
+\hspace{1em}cc & 0.944 & 0.943 & 0.931 & 0.951 & 0.948\\
+\hspace{1em}full & 0.951 & 0.945 & 0.94 & 0.952 & 0.952\\
+\hspace{1em}observed & 0.923 & 0.928 & 0.942 & 0.952 & 0.951\\
+\bottomrule
+\end{tabu}
+\endgroup{}
+\end{table}
+
+\begin{table}
+\caption{Here you can type in your caption}
+\begingroup\fontsize{7}{9}\selectfont
+
+\begin{tabu} to \linewidth {>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X}
+\toprule
+ & $\mu_1$ & $\sigma^2_1$ & $\sigma^2$ & $\beta_0$ & $\beta_1$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Mean}}\\
+\hspace{1em}cc & 10.013 & 25.029 & 24.474 & 9.995 & 2\\
+\hspace{1em}full & 10.008 & 24.888 & 24.547 & 9.936 & 2.005\\
+\hspace{1em}observed & 10.013 & 24.778 & 24.777 & 9.885 & 2.01\\
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Variance}}\\
+\hspace{1em}cc & 0.247 & 12.943 & 11.924 & 1.368 & 0.011\\
+\hspace{1em}full & 0.149 & 8.538 & 11.804 & 1.167 & 0.009\\
+\hspace{1em}observed & 0.247 & 12.684 & 12.227 & 1.234 & 0.01\\
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Coverage rate}}\\
+\hspace{1em}cc & 0.949 & 0.94 & 0.926 & 0.942 & 0.943\\
+\hspace{1em}full & 0.956 & 0.948 & 0.939 & 0.946 & 0.953\\
+\hspace{1em}observed & 0.877 & 0.893 & 0.943 & 0.94 & 0.947\\
+\bottomrule
+\end{tabu}
+\endgroup{}
+\end{table}
+
+\begin{table}
+\caption{Here you can type in your caption}
+\begingroup\fontsize{7}{9}\selectfont
+
+\begin{tabu} to \linewidth {>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X}
+\toprule
+ & $\mu_1$ & $\sigma^2_1$ & $\sigma^2$ & $\beta_0$ & $\beta_1$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Mean}}\\
+\hspace{1em}cc & 9.987 & 25.01 & 97.84 & 10.038 & 1.994\\
+\hspace{1em}full & 10.001 & 24.844 & 98.356 & 9.959 & 2.005\\
+\hspace{1em}observed & 9.987 & 24.759 & 99.034 & 9.987 & 2.003\\
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Variance}}\\
+\hspace{1em}cc & 0.253 & 12.293 & 206.502 & 5.039 & 0.041\\
+\hspace{1em}full & 0.192 & 10.868 & 180.224 & 3.821 & 0.031\\
+\hspace{1em}observed & 0.253 & 12.047 & 181.751 & 3.897 & 0.031\\
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Coverage rate}}\\
+\hspace{1em}cc & 0.944 & 0.941 & 0.919 & 0.952 & 0.948\\
+\hspace{1em}full & 0.948 & 0.947 & 0.933 & 0.954 & 0.954\\
+\hspace{1em}observed & 0.912 & 0.93 & 0.939 & 0.951 & 0.951\\
+\bottomrule
+\end{tabu}
+\endgroup{}
+\end{table}
+
+\hypertarget{misspecified-predictor-distribution}{%
+\subsubsection{Misspecified predictor
+distribution}\label{misspecified-predictor-distribution}}
+
+A Normal distribution is used to model a right skewed data that was
+originally designed to follow a \(Exp(\lambda = 0.1)\). We assess
+estimators performance under misspecification with two missingness
+rates: 50\% and 5\%.
+
+\begin{table}
+\caption{Here you can type in your caption}
+\begingroup\fontsize{7}{9}\selectfont
+
+\begin{tabu} to \linewidth {>{\raggedright}X>{\raggedright}X>{\raggedright}X}
+\toprule
+ & $\beta_0$ & $\beta_1$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Mean}}\\
+\hspace{1em}cc & 10.003 & 2\\
+\hspace{1em}full & 9.963 & 2.005\\
+\hspace{1em}observed & 9.884 & 2.017\\
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Variance}}\\
+\hspace{1em}cc & 0.513 & 0.003\\
+\hspace{1em}full & 0.497 & 0.003\\
+\hspace{1em}observed & 0.576 & 0.005\\
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Coverage rate}}\\
+\hspace{1em}cc & 0.949 & 0.942\\
+\hspace{1em}full & 0.957 & 0.932\\
+\hspace{1em}observed & 0.944 & 0.863\\
+\bottomrule
+\end{tabu}
+\endgroup{}
+\end{table}
+
+\begin{table}
+\caption{Here you can type in your caption}
+\begingroup\fontsize{7}{9}\selectfont
+
+\begin{tabu} to \linewidth {>{\raggedright}X>{\raggedright}X>{\raggedright}X}
+\toprule
+ & $\beta_0$ & $\beta_1$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Mean}}\\
+\hspace{1em}cc & 9.998 & 2\\
+\hspace{1em}full & 9.997 & 2\\
+\hspace{1em}observed & 9.995 & 2.001\\
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Variance}}\\
+\hspace{1em}cc & 0.272 & 0.001\\
+\hspace{1em}full & 0.272 & 0.001\\
+\hspace{1em}observed & 0.273 & 0.001\\
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Coverage rate}}\\
+\hspace{1em}cc & 0.947 & 0.949\\
+\hspace{1em}full & 0.95 & 0.955\\
+\hspace{1em}observed & 0.951 & 0.953\\
+\bottomrule
+\end{tabu}
+\endgroup{}
+\end{table}
+
+\hypertarget{multivariate-linear-regression}{%
+\subsection{Multivariate Linear
+Regression}\label{multivariate-linear-regression}}
+
+\hypertarget{mar-independent-of-y}{%
+\subsubsection{MAR independent of y}\label{mar-independent-of-y}}
+
+\begin{table*}[bp]
+\caption{Here you can type in your caption}
+\begingroup\fontsize{7}{9}\selectfont
+
+\begin{tabu} to \linewidth {>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X}
+\toprule
+ & $\mu_1$ & $\mu_2$ & $\mu_3$ & $\sigma^2_1$ & $\sigma^2_2$ & $\sigma^2_3$ & $\sigma^2$ & $\beta_0$ & $\beta_1$ & $\beta_2$ & $\beta_3$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{12}{l}{\textbf{Mean}}\\
+\hspace{1em}cc & 10 & 0 & 10.002 & 24.981 & 0.907 & 25.027 & 24.309 & 9.977 & 1 & 2.998 & 0.003\\
+\hspace{1em}full & 9.825 & 0 & 10.002 & 25.024 & 0.996 & 24.867 & 25.619 & 10.41 & 0.975 & 2.694 & 0.002\\
+\addlinespace[0.3em]
+\multicolumn{12}{l}{\textbf{Variance}}\\
+\hspace{1em}cc & 0.151 & 0.005 & 0.16 & 9.089 & 0.012 & 9.286 & 8.976 & 1.769 & 0.008 & 0.211 & 0.008\\
+\hspace{1em}full & 0.142 & 0.005 & 0.16 & 7.181 & 0.01 & 7.819 & 6.982 & 1.222 & 0.006 & 0.13 & 0.005\\
+\addlinespace[0.3em]
+\multicolumn{12}{l}{\textbf{Coverage rate}}\\
+\hspace{1em}cc & 0.948 & 0.949 & 0.947 & 0.923 & 0.787 & 0.926 & 0.917 & 0.946 & 0.946 & 0.949 & 0.945\\
+\hspace{1em}full & 0.929 & 0.954 & 0.95 & 0.951 & 0.951 & 0.949 & 0.972 & 0.964 & 0.952 & 0.904 & 0.982\\
+\bottomrule
+\end{tabu}
+\endgroup{}
+\end{table*}
+
+\hypertarget{mar-dependent-of-y}{%
+\subsubsection{MAR dependent of y}\label{mar-dependent-of-y}}
+
+\begin{table*}[bp]
+\caption{Here you can type in your caption}
+\begingroup\fontsize{7}{9}\selectfont
+
+\begin{tabu} to \linewidth {>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright}X}
+\toprule
+ & $\mu_1$ & $\mu_2$ & $\mu_3$ & $\sigma^2_1$ & $\sigma^2_2$ & $\sigma^2_3$ & $\sigma^2$ & $\beta_0$ & $\beta_1$ & $\beta_2$ & $\beta_3$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{12}{l}{\textbf{Mean}}\\
+\hspace{1em}cc & 10.898 & -0.002 & 9.996 & 21.331 & 0.948 & 24.895 & 19.77 & 12.985 & 0.817 & 2.446 & -0.002\\
+\hspace{1em}full & 10.005 & -0.002 & 9.996 & 24.923 & 0.995 & 24.794 & 25.659 & 10.25 & 0.976 & 2.81 & 0\\
+\addlinespace[0.3em]
+\multicolumn{12}{l}{\textbf{Variance}}\\
+\hspace{1em}cc & 0.134 & 0.005 & 0.168 & 6.973 & 0.013 & 8.853 & 5.842 & 1.51 & 0.007 & 0.167 & 0.006\\
+\hspace{1em}full & 0.155 & 0.005 & 0.168 & 9.223 & 0.009 & 7.552 & 8.953 & 1.176 & 0.006 & 0.136 & 0.005\\
+\addlinespace[0.3em]
+\multicolumn{12}{l}{\textbf{Coverage rate}}\\
+\hspace{1em}cc & 0.289 & 0.949 & 0.938 & 0.599 & 0.857 & 0.927 & 0.419 & 0.349 & 0.433 & 0.711 & 0.955\\
+\hspace{1em}full & 0.946 & 0.954 & 0.942 & 0.943 & 0.951 & 0.947 & 0.964 & 0.982 & 0.953 & 0.949 & 0.982\\
+\bottomrule
+\end{tabu}
+\endgroup{}
+\end{table*}
+
+\hypertarget{discussion}{%
+\section{Discussion}\label{discussion}}
+
+The simulation results corroborated our expectations that linear
+regression augmented by the EM algorithm generally outperformed CC
+analysis. It maximized the usage of all observed information without
+dropping any incomplete observations. The simulation results provided us
+with a few critical take-home messages. We realized that high
+missingness rates require more iterations of M-steps to have the
+algorithm achieve a convergence. Moreover, missingness, along with the
+noise, weakened the estimator's efficiency. Based on the simple linear
+regression setting, we found that applying EM over full likelihood
+generally performs better than using it over observed likelihood.
+Implementing the full likelihood, we had higher coverage probability on
+the predictor parameters and slightly better efficiency in estimating
+linear model coefficients. ML approach with the EM algorithm was always
+more efficient than CC, and the difference became more apparent when the
+degree of missingness increased.
+
+An interesting observation was that the misspecification of the
+predictor's distribution did not obviously hurt the estimation on
+\(\beta\) for both methods. It was reasonable that CC was not affected
+as the ordinary linear regression did not require any assumption on
+\(X\) and CC is theoretically unbiased when the missingness mechanism is
+MCAR. On the contrary, the EM algorithm demanded explicit modeling of
+the likelihood function, which involved the distribution of \(X\). In
+the derivation, the estimation of \(\beta\) depended on \(\mu\) and
+\(\Sigma\). Theoretically, incorrect estimation of these predictor
+parameters can eventually influence the estimation of \(\beta\).
+However, the EM estimator seemed to be more robust than the expectation.
+
+{[}under MAR cc is bad (sometimes), em is good{]}
+
+\hypertarget{conclusion}{%
+\section{Conclusion}\label{conclusion}}
+
+\hypertarget{reference}{%
+\subsection*{Reference}\label{reference}}
+\addcontentsline{toc}{subsection}{Reference}
+
+\hypertarget{refs}{}
+\begin{CSLReferences}{0}{0}
+\leavevmode\vadjust pre{\hypertarget{ref-little2019statistical}{}}%
+\CSLLeftMargin{{[}1{]} }%
+\CSLRightInline{R.J. Little, D.B. Rubin, Statistical analysis with
+missing data, John Wiley \& Sons, 2019.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-schafer2002missing}{}}%
+\CSLLeftMargin{{[}2{]} }%
+\CSLRightInline{J.L. Schafer, J.W. Graham, Missing data: Our view of the
+state of the art., Psychological Methods. 7 (2002) 147.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-seaman2013review}{}}%
+\CSLLeftMargin{{[}3{]} }%
+\CSLRightInline{S.R. Seaman, I.R. White, Review of inverse probability
+weighting for dealing with missing data, Statistical Methods in Medical
+Research. 22 (2013) 278--295.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-dempster1977maximum}{}}%
+\CSLLeftMargin{{[}4{]} }%
+\CSLRightInline{A.P. Dempster, N.M. Laird, D.B. Rubin, Maximum
+likelihood from incomplete data via the EM algorithm, Journal of the
+Royal Statistical Society: Series B (Methodological). 39 (1977) 1--22.}
+
+\end{CSLReferences}
+
+\end{document}
