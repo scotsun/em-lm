@@ -1,5 +1,5 @@
 ---
-title: "**Enhancing Linear Regression with EM algorithm <br> to Handle Missing Data**"
+title: "**Enhancing Linear Regression with EM algorithm to Handle Missing Data**"
 subtitle: BIOSTAT 823 Final Project Report
 author: |
     Scott Sun  
@@ -15,7 +15,7 @@ bibliography: res/report.bib
 link-citations: yes
 csl: res/jbi.csl
 abstract: |
-  Data can be missing for different reasons, but sometimes the missingness is a part of the data collection process. Unbiased and efficient estimation of the parameters governing the response mean model requires the missing data to be appropriately addressed. In this project, we combined the EM algorithm with General Linear Model, from derivation to coding, and compared its performance with Complete-Case Analysis. The comparison is demonstrated through numerical simulations under various conditions: different degrees of missingness, different noise scales, and different missingness mechanisms.
+  Data can be missing for different reasons, but sometimes the missingness is a part of the data collection process. Unbiased and efficient estimation of the parameters governing the response mean model requires the missing data to be appropriately addressed. In this project, we combined the EM algorithm with General Linear Model, from derivation to coding, and compared its performance with Complete-Case Analysis. The comparison is demonstrated through numerical simulations under various conditions.
 header-includes:
   - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 ---
@@ -40,8 +40,10 @@ multvariate_mar <- readRDS("../simulation_rlt/mult_linear/gamma-12p80sigmaSq25.r
 ```
 
 # Introduction
+It is common for applied data analysts or researchers to retain complete observations only when the data has missingness. This approach is called complete-case (CC) analysis. It is usually the default in many software packages (i.e., `lm` in `R`). It is straightforward to understand but not always valid since it may exclude potentially helpful information. Various statistical or machine learning approaches handle missingness as more justified alternatives to CC. In this project, we will derive and develop a method called **EM-LM**, which combines the Expectation-Maximization (EM) algorithm and General Linear Model. Meanwhile, we will also compare the performance of EM-LM with `R`'s default `lm` under varied conditions of degrees of missingness, noise scales, and missingness mechanisms. We will demonstrate the comparisons through numerical simulations.
+
 # Missingness Mechanisms
-In framework defined by Little and Rubin @little2019statistical, missingness mechanisms are classified into three categories: **Missing Completely at Random (MCAR)**, **Missing at Random (MAR)**, and Not Missing at Random. Within the scope of this project, we will only discuss MCAR and MAR.
+In the framework defined by Little and Rubin @little2019statistical, missingness mechanisms are classified into three categories: **Missing Completely at Random (MCAR)**, **Missing at Random (MAR)**, and Not Missing at Random (NMAR). Any missingness pattern following the MCAR or MAR mechanisms is defined as **ignorable** because the pattern does not interfere with parameter estimation and inference [@little2019statistical]. When the missingness follows NMAR, it is non-ignorable. However, within this project's scope, we will only discuss MCAR and MAR, as EM-LM is only justified under these two settings.
 
 ## Missing Completely at Random
 If the likelihood of being observed is independent of any variables, the missingness mechanism is MCAR. That is,
@@ -57,13 +59,12 @@ $$
 $$
 Compared to MCAR, MAR is a less constrained statement. Based on this definition, MCAR can be seen as an extreme, special case of MAR [@schafer2002missing].
 
-# Notation
+# Problem Setting and Notations
+Assume in the General Linear Model, the sample size is $n$ and the number of predictors is $p$. In this project, we will only discuss scenarios where the predictor variable $X \in \mathbb{R}^{n \times p}$ can have missing values and the response variable $y \in \mathbb{R}^n$ is fully observed. On the observation level, $x_i$ is p-vector and $y_i$ is a scalar. We use $R \in \mathbb{R}^{n \times p}$ and $r \in \mathbb{R}^{n \times 1}$ to indicate the observation of every data value and the completeness of observation, respectively. Let $S$ represent the index set of all individuals of complete observation, and let $\bar{S}$ represent the complementary set. That is, $S = \{i: r_i = 1\}$ and $\bar{S} = \{i: r_i = 0\}$.
 
 # Methods
 ## Complete-Case Analysis
-
-As we have introduced in Section 1, CC analysis is a common method in the presence of data missingness. After removing the incomplete observations from the data set, we can perform all kinds of calculation on the remaining data. These observations are indexed by elements in $S$. For all $i \in S$, $R_i = 1$. As a result, the likelihood function is modified to $L_{CC}(\boldsymbol{\Theta})$.
-
+As we have introduced in Section 1, CC analysis is a common method in the presence of data missingness. After removing the incomplete observations from the data set, we can perform all kinds of calculation on the remaining data. These observations are indexed by elements in $S$. For all $i \in S$, $R_i = 1$. As a result, the likelihood function is modified to $L_{CC}(\boldsymbol{\Theta})$.  
 $$
 \begin{aligned}
 L_{CC}(\boldsymbol\Theta)
@@ -71,12 +72,10 @@ L_{CC}(\boldsymbol\Theta)
 \end{aligned}
 $$
 
-Then, the CC analysis obtains $\hat{\boldsymbol\Theta}$ by maximizing $L_{CC}(\boldsymbol\Theta)$. There are a few circumstances where the CC analysis can yield valid estimators. When the missingness mechanism is MCAR, the estimator is generally unbiased and consistent because the completeness is independent of all variables in the data set. The complete cases can be viewed as random samples from an imagined full data set [@schafer2002missing, @seaman2013review]. In our specific ODS design notations, $\Pr(R = 1|X, Y; \boldsymbol\Theta) = \Pr(R = 1)$. Second, the CC analysis estimator can have negligible bias under a weaker condition: the missingness mechanism is MAR, but it is independent of the response variable given the observed predictor variables. This assumes the mean model is correctly specified [@seaman2013review]. In our notations, $\Pr(R = 1|X, Y; \boldsymbol\Theta) = \Pr(R = 1 | X; \boldsymbol\Theta)$. 
-
+Then, the CC analysis obtains $\hat{\boldsymbol\Theta}$ by maximizing $L_{CC}(\boldsymbol\Theta)$. There are a few circumstances where the CC analysis can yield valid estimators. When the missingness mechanism is MCAR, the estimator is generally unbiased and consistent because the completeness is independent of all variables in the data set. The complete cases can be viewed as random samples from an imagined full data set [@schafer2002missing, @seaman2013review]. Apart from that, the CC analysis estimator can have negligible bias under a weaker condition: the missingness mechanism is MAR, but it is independent of the response variable given the observed predictor variables [@seaman2013review]. CC analysis can be straightforwardly implemented in coding by drop observations with missing data.
 
 ## Maximum Likelihood EM Algorithm
-
-EM algorithm is a iterative optimization process to calculate the maximum likelihood estimates of parameters when there exist hidden variables or missing data [@dempster1977maximum]. As the name directly tells, it consists of two major step: expectation (E-step) and maximization (M-step).
+The EM algorithm is an iterative optimization process to calculate the maximum likelihood estimates of parameters when there exist hidden variables or missing data [@dempster1977maximum]. As the name directly tells, it consists of two major steps: expectation (E-step) and maximization (M-step). In the E-step, we derive the conditional expectation of the log-likelihood function. The expectation is integrated over the conditional distribution: $$f(\text{variables}~|~\text{observed variables})$$ Then, in the M-step, we iteratively optimize the conditional expectation to obtain the maximum likelihood estimates. The M-step can be visualized as the following pseudo-code.
 
 \begin{algorithm}
 \DontPrintSemicolon
@@ -98,64 +97,139 @@ initialization $\boldsymbol{\hat{\Theta}}^{(0)}$\;
 \caption{M-step of EM algorithm}
 \end{algorithm} 
 
+### Assumptions
+In our linear regression setting, any ignorable missingness can happen to $X$ and $y$ is fully observed. Moreover, since the EM algorithm maximize the joint distribution of $x_i$ and $y_i$, we have to explicitly assume parametric model of both variables. Therefore, the EM-LM algorithm assume the following distribution models for both predictor and response.
+$$
+\begin{aligned}
+x_i &\overset{iid}{\sim} \mathcal{N}(\mu, \Sigma) \\
+y_i | x_i &\overset{ind}{\sim} N(\beta_0 + x^{\top}\beta, \sigma^2)
+\end{aligned}
+$$
+Therefore, the likelihood functions for the optimization fall into one of the follows.
+$$
+\begin{aligned}
+&L_{full} = \prod_{i = 1}^{n} f(y_i|x_i)f(x_i)\\
+&L_{observed} = \prod_{i = 1}^{n} f(y_i|x_i)f(x_{i,observed})
+\end{aligned}
+$$
+
 ### Point Estimates
-### Standard Error
+As the problem setting states, any element in $X$ can be missing and $y$ is fully observed. To derive the conditional expectation of the log-likelihood function, denoted as $J\big(\boldsymbol{\Theta}|\boldsymbol{\hat{\Theta}}^{(k-1)}\big)$, we need to obtain the reverse conditional distribution $f(x_i|y_i)$.
+$$
+\begin{aligned}
+f(x_i|y_i) &\propto f(y_i|x_i) f(x_i) \\
+&\propto \exp\Big\{ -\frac{1}{2}x_{i}^{\top}\big( \frac{\beta\beta^{\top}}{\sigma^2} + \Sigma^{-1} \big)x_i+
+(\beta^{\top} \frac{y-\beta_0}{\sigma^2} + \mu^{\top}\Sigma^{-1})x_i\Big\}
+\end{aligned}
+$$
+Thus,
+$$
+\begin{aligned}
+x_i | y_i &\overset{Ind}{\sim} \mathcal{N}(\xi_i, \Phi), \\
+&\text{where}
+\begin{cases}
+    \Phi = \big( \frac{\beta\beta^{\top}}{\sigma^2} + \Sigma^{-1} \big)^{-1} \\
+    \xi_i = \big( \frac{y_i-\beta_0}{\sigma^2}\beta + \Sigma^{-1}\mu \big)\Phi
+\end{cases}
+\end{aligned}
+$$
+One interesting observation from the derivation is that independence among predictor variables does not guarantee conditional independence given the response.
+
+Now, we can define the conditional expectation function as $\tilde{\mathbb{E}}(\cdot)$.
+$$
+\tilde{\mathbb{E}}(g(x)) = 
+\begin{cases}
+    g(x), ~\text{if}~x~\text{observed} \\
+    \mathbb{E}[g(x) |~\text{observed data}, \boldsymbol{\hat\Theta}], ~\text{else}
+\end{cases}
+$$
+Optimizing $J$ is equivalent to optimizing $J* = \tilde{\mathbb{E}}\big[\sum_{i=1}^{n} \log f(y_i|x_i) + \log f(x_i)\big]$. Meanwhile, let $\beta^{*} = (\beta_0, \beta)$ and $x_i^{*} = (1, x_i)$. Then, goal became optimizing
+$$
+\begin{aligned}
+J* &= \sum_{i = 1}^{n}\tilde{\mathbb{E}}\Big\{ -\frac{1}{2} \log(|\Sigma|) - \frac{1}{2} (x_i - \mu)^{\top}\Sigma^{-1}(x_i - \mu) \\
+&- \frac{1}{2}\log(\sigma^2) - \frac{1}{2\sigma^2}(y - x^{*\top}\beta^{*})\Big\}
+\end{aligned}
+$$
+Then, we can calculate the first derivatives to optimize the function.
+
+$$
+\begin{aligned}
+\boldsymbol{\mathrm{D}}_{{\beta}^{*}}J* &= 
+\sum_{i=1}^{n} - \frac{1}{\sigma^2} \{-\tilde{\mathbb{E}}(x_i)y_i + \tilde{\mathbb{E}}(x_ix_i^{\top})\beta^{*}\} \\
+\boldsymbol{\mathrm{D}}_{{\sigma}^2}J* &=
+\sum_{i=1}^{n} \Big\{ - \frac{1}{2\sigma^2} + \frac{1}{2\sigma^4} \tilde{\mathbb{E}}\big((y_i-x^{*\top}\beta^{*})^2\big) \Big\}\\
+\boldsymbol{\mathrm{D}}_{\mu}J* &= \Sigma^{-1} \sum_{i=1}^{n} \Big\{\tilde{\mathbb{E}}(x_i) - \mu \Big\}\\
+\boldsymbol{\mathrm{D}}_{\Sigma}J* &= 
+\sum_{i=1}^{n} -\frac{1}{2} \Big\{ \Sigma^{-1} - \Sigma^{-1} \tilde{\mathbb{E}}\big((x_i-\mu)^2\big) \Sigma^{-1} \Big\}
+\end{aligned}
+$$
+By setting the first derivative to 0, we obtained the closed-form estimator. It is really help to use *The Matrix Cook* [@petersen2008matrix] as the reference to support linear algebra calculation in the derivation.
+
+### Standard Error & Confidence Interval
+The theoretical standard error of estimates are calculated from the observed information matrix
+$$ 
+I_n (\hat{\boldsymbol{\Theta}}) = n \cdot \mathrm{Cov}(S(\hat{\boldsymbol{\Theta}}))
+$$
+Then the standard error of $\hat\Theta_i$ is calculated by the square root of the i-th diagonal element of $I_n(\hat{\boldsymbol{\Theta}})^{-1}$. Due to the asymptotic normality of the maximum likelihood estimator, we can use the standard errors to calculate $(1-\alpha)100\%$ confidence interval (CI) for parameters. We also implement a bootstrapping approach based on Simple Random Sampling with Replacement as an alternative way to calculate CIs. Considering the computation efficiency, we will not use bootstrapped CI in the simulation studies.
+
 # Simulation Studies
 
 ## Simple Linear Regression
+Parameter setting: [todo]
 
 ### Varied Missingness Rate and Noise Scale
+Table 1-4 varied missingness rate & noise scale: [todo]
 
-\begin{table}
-\caption{Here you can type in your caption}
+\begin{table}[h]
+\caption{Missingness rate is 5\%, and noise scale is 5}
 ```{r, echo=FALSE}
 summarizing_table(low_missingness)
 ```
 \end{table}
 
-
-\begin{table}
-\caption{Here you can type in your caption}
+\begin{table}[h]
+\caption{Missingness rate is 20\%, and noise scale is 5}
 ```{r, echo=FALSE}
 summarizing_table(mid_missingness)
 ```
 \end{table}
 
-\begin{table}
-\caption{Here you can type in your caption}
+\begin{table}[h]
+\caption{Missingness rate is 50\%, and noise scale is 5}
 ```{r, echo=FALSE}
 summarizing_table(high_missingness)
 ```
 \end{table}
 
-\begin{table}
-\caption{Here you can type in your caption}
+\begin{table}[h]
+\caption{Missingness rate is 50\%, and noise scale is 10}
 ```{r, echo=FALSE}
 summarizing_table(high_missingness_high_noise)
 ```
 \end{table}
 
 ### Misspecified predictor distribution
-A Normal distribution is used to model a right skewed data that was originally designed to follow a $Exp(\lambda = 0.1)$. We assess estimators performance under misspecification with two missingness rates: 50% and 5%.
+A Normal distribution is used to model a right skewed data that was originally designed to follow a $Exp(\lambda = 0.1)$. We assess estimators performance under misspecification with two missingness rates: 5% and 50%. Table 5-6 varied missingness rate & misspecification: [todo]
 
-
-\begin{table}
-\caption{Here you can type in your caption}
-```{r, echo=FALSE}
-summarizing_table(high_missingness_misspec, only_beta = TRUE)
-```
-\end{table}
-
-\begin{table}
-\caption{Here you can type in your caption}
+\begin{table}[h]
+\caption{Missingness rate is 5\%, noise scale is 5, and misspecified $X$}
 ```{r, echo=FALSE}
 summarizing_table(low_missingness_misspec, only_beta = TRUE)
 ```
 \end{table}
 
+\begin{table}[h]
+\caption{Missingness rate is 50\%, noise scale is 5, and misspecified $X$}
+```{r, echo=FALSE}
+summarizing_table(high_missingness_misspec, only_beta = TRUE)
+```
+\end{table}
+
 ## Multivariate Linear Regression
+In the previous simulation studies for simple linear regression, we did experiments with MCAR missingness under various missingness rates and noise scales. In the multivariate linear regression setting, we designed two different MAR mechanisms for $X$ to test the performance of the EM-LM.
 
 ### MAR independent of y
+Table 7 missingness mechanism, logistic regression without including y: [todo]
 
 \begin{table*}[bp]
 \caption{Here you can type in your caption}
@@ -165,6 +239,7 @@ summarizing_table(multvariate_mcar, p = 3, num_methods = 2, latex_opt = NULL)
 \end{table*}
 
 ### MAR dependent of y
+Table 8 missingness mechanism, logistic regression including y: [todo]
 
 \begin{table*}[bp]
 \caption{Here you can type in your caption}
@@ -177,12 +252,8 @@ summarizing_table(multvariate_mar, p = 3, num_methods = 2, latex_opt = NULL)
 
 The simulation results corroborated our expectations that linear regression augmented by the EM algorithm generally outperformed CC analysis. It maximized the usage of all observed information without dropping any incomplete observations. The simulation results provided us with a few critical take-home messages. We realized that high missingness rates require more iterations of M-steps to have the algorithm achieve a convergence. Moreover, missingness, along with the noise, weakened the estimator's efficiency. Based on the simple linear regression setting, we found that applying EM over full likelihood generally performs better than using it over observed likelihood. Implementing the full likelihood, we had higher coverage probability on the predictor parameters and slightly better efficiency in estimating linear model coefficients. ML approach with the EM algorithm was always more efficient than CC, and the difference became more apparent when the degree of missingness increased. 
 
-An interesting observation was that the misspecification of the predictor's distribution did not obviously hurt the estimation on $\beta$ for both methods. It was reasonable that CC was not affected as the ordinary linear regression did not require any assumption on $X$ and CC is theoretically unbiased when the missingness mechanism is MCAR. On the contrary, the EM algorithm demanded explicit modeling of the likelihood function, which involved the distribution of $X$. In the derivation, the estimation of $\beta$ depended on $\mu$ and $\Sigma$. Theoretically, incorrect estimation of these predictor parameters can eventually influence the estimation of $\beta$. However, the EM estimator seemed to be more robust than the expectation.
+An interesting observation was that the misspecification of the predictor's distribution did not significantly impair the estimation on $\beta$ for both methods. It was reasonable that CC was not affected as the ordinary linear regression did not require any assumption on $X$ and CC is theoretically unbiased when the missingness mechanism is MCAR. On the contrary, the EM algorithm demanded explicit modeling of the likelihood function, which involved the distribution of $X$. In the derivation, the estimation of $\beta$ depended on $\mu$ and $\Sigma$. Theoretically, incorrect estimation of these predictor parameters can eventually influence the estimation of $\beta$. However, the EM estimator seemed to be more robust than the expectation.
 
-[under MAR cc is bad (sometimes), em is good]
-
-
-# Conclusion
-
+In the multivariate setting, as we could manipulate more predictor variables, we assessed the algorithm performance under two different MAR mechanisms: MAR independent of $y$ and MAR dependent on $y$. Following Seaman and White's theory [@seaman2013review], we also observed that CC seemed to generate unbiased estimates when the mechanism did not involve $y$. However, its results became misleading when the mechanism involved $y$. EM-LM's results were generally more efficient. It remained unclear that the estimates tended to be slightly biased, but the converge probabilities were generally at the right level.
 
 ## Reference {-}
