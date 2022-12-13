@@ -17,7 +17,7 @@ csl: res/jbi.csl
 abstract: |
   Missing data is a common issue in data analysis. Unbiased and efficient estimation of the parameters governing the mean response model requires the missing data to be appropriately addressed. In this project, we derived and developed an EM algorithm for General Linear Model and compared its performance with Complete-Case Analysis. The simulation result shows that applying the EM algorithm over the full likelihood rather than the observed variables' likelihood is preferable. More importantly, EM estimators are generally more efficient and less biased when the missingness pattern becomes more complex.
 header-includes:
-  - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+  - \usepackage[ruled,vlined]{algorithm2e}
 ---
 
 ```{r setup, include=FALSE}
@@ -181,7 +181,7 @@ $$
 where $i = 1,...,N$. $\forall i, x_i \sim \mathcal{N}(\mu, \Sigma)$ and $\epsilon_i \sim N(0, \sigma^2)$. In the second step, we generate the $n \times p$ random matrix $R$ to indicate the observation of $X$. Each element in the matrix, $R_{ij}$, follows a Bernoulli distribution with probability $p_{ij}$. If the missingness mechanism is MCAR, $p_{ij}$ is a constant for all $i$; if the missingness mechanism is MAR, $p_{ij}$'s values are calculated through a logistic regression depending on other variables, such as $y$ or any other column of $X$.
 
 ## Simple Linear Regression
-In of simulations of this section, the simulated data are based on a fixed set of population parameters shown below.
+In the simulations of this section, the simulated data are based on a fixed set of population parameters shown below.
 $$
 \mu_1 = 10,~\sigma_{1}^{2} = 25,~\beta_0 = 10,~\beta_1 = 2
 $$
