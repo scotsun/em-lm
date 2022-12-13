@@ -117,14 +117,15 @@ GitHub repo: \url{https://github.com/scotsun/bios823final_project}}
 \begin{document}
 \maketitle
 \begin{abstract}
-Data can be missing for different reasons, but sometimes the missingness
-is a part of the data collection process. Unbiased and efficient
-estimation of the parameters governing the response mean model requires
+Missing data is a common issue in data analysis. Unbiased and efficient
+estimation of the parameters governing the mean response model requires
 the missing data to be appropriately addressed. In this project, we
-combined the EM algorithm with General Linear Model, from derivation to
-coding, and compared its performance with Complete-Case Analysis. The
-comparison is demonstrated through numerical simulations under various
-conditions.
+derived and developed an EM algorithm for General Linear Model and
+compared its performance with Complete-Case Analysis. The simulation
+result shows that applying the EM algorithm over the full likelihood
+rather than the observed variables' likelihood is preferable. More
+importantly, EM estimators are generally more efficient and less biased
+when the missingness pattern becomes more complex.
 \end{abstract}
 
 \hypertarget{introduction}{%
@@ -134,15 +135,31 @@ It is common for applied data analysts or researchers to retain complete
 observations only when the data has missingness. This approach is called
 complete-case (CC) analysis. It is usually the default in many software
 packages (i.e., \texttt{lm} in \texttt{R}). It is straightforward to
-understand but not always valid since it may exclude potentially helpful
-information. Various statistical or machine learning approaches handle
-missingness as more justified alternatives to CC. In this project, we
-will derive and develop a method called \textbf{EM-LM}, which combines
-the Expectation-Maximization (EM) algorithm and General Linear Model.
-Meanwhile, we will also compare the performance of EM-LM with
-\texttt{R}'s default \texttt{lm} under varied conditions of degrees of
-missingness, noise scales, and missingness mechanisms. We will
+understand but only sometimes valid since it may exclude potentially
+helpful information. Various statistical or machine learning approaches
+handle missingness as more justified alternatives to CC. In this
+project, we will derive and develop a method called \textbf{EM-LM},
+which combines the Expectation-Maximization (EM) algorithm and General
+Linear Model. Meanwhile, we will also compare the performance of EM-LM
+with \texttt{R}'s default \texttt{lm} under varied conditions of degrees
+of missingness, noise scales, and missingness mechanisms. We will
 demonstrate the comparisons through numerical simulations.
+
+\hypertarget{problem-setting-and-notations}{%
+\section{Problem Setting and
+Notations}\label{problem-setting-and-notations}}
+
+Assume in the General Linear Model, the sample size is \(n\) and the
+number of predictors is \(p\). In this project, we will only discuss
+scenarios where the predictor variable \(X \in \mathbb{R}^{n \times p}\)
+can have missing values and the response variable \(y \in \mathbb{R}^n\)
+is fully observed. On the observation level, \(x_i\) is p-vector and
+\(y_i\) is a scalar. We use \(R \in \mathbb{R}^{n \times p}\) and
+\(r \in \mathbb{R}^{n \times 1}\) to indicate the observation of every
+data value and the completeness of observation, respectively. Let \(S\)
+represent the index set of all individuals of complete observation, and
+let \(\bar{S}\) represent the complementary set. That is,
+\(S = \{i: r_i = 1\}\) and \(\bar{S} = \{i: r_i = 0\}\).
 
 \hypertarget{missingness-mechanisms}{%
 \section{Missingness Mechanisms}\label{missingness-mechanisms}}
@@ -155,9 +172,9 @@ Missing at Random (NMAR). Any missingness pattern following the MCAR or
 MAR mechanisms is defined as \textbf{ignorable} because the pattern does
 not interfere with parameter estimation and inference
 {[}\protect\hyperlink{ref-little2019statistical}{1}{]}. When the
-missingness follows NMAR, it is non-ignorable. However, within this
-project's scope, we will only discuss MCAR and MAR, as EM-LM is only
-justified under these two settings.
+missingness follows NMAR, it becomes non-ignorable. However, within this
+project's scope, we will only discuss MCAR and MAR, as EM-LM will only
+be justified under these two settings.
 
 \hypertarget{missing-completely-at-random}{%
 \subsection{Missing Completely at
@@ -165,7 +182,7 @@ Random}\label{missing-completely-at-random}}
 
 If the likelihood of being observed is independent of any variables, the
 missingness mechanism is MCAR. That is, \[
-\Pr(R|X, \boldsymbol\Theta) = \Pr(R| \boldsymbol\Theta).
+\Pr(R|X,  \boldsymbol\Theta) = \Pr(R| \boldsymbol\Theta).
 \] MCAR is a strong ideal assumption on the mechanism, which assumes the
 missingness is unrelated to all variables. It indicates that the pattern
 is not affected by the studied subjects. For instance, when we research
@@ -183,22 +200,6 @@ variables, the missingness mechanism is MAR. That is, \[
 \] Compared to MCAR, MAR is a less constrained statement. Based on this
 definition, MCAR can be seen as an extreme, special case of MAR
 {[}\protect\hyperlink{ref-schafer2002missing}{2}{]}.
-
-\hypertarget{problem-setting-and-notations}{%
-\section{Problem Setting and
-Notations}\label{problem-setting-and-notations}}
-
-Assume in the General Linear Model, the sample size is \(n\) and the
-number of predictors is \(p\). In this project, we will only discuss
-scenarios where the predictor variable \(X \in \mathbb{R}^{n \times p}\)
-can have missing values and the response variable \(y \in \mathbb{R}^n\)
-is fully observed. On the observation level, \(x_i\) is p-vector and
-\(y_i\) is a scalar. We use \(R \in \mathbb{R}^{n \times p}\) and
-\(r \in \mathbb{R}^{n \times 1}\) to indicate the observation of every
-data value and the completeness of observation, respectively. Let \(S\)
-represent the index set of all individuals of complete observation, and
-let \(\bar{S}\) represent the complementary set. That is,
-\(S = \{i: r_i = 1\}\) and \(\bar{S} = \{i: r_i = 0\}\).
 
 \hypertarget{methods}{%
 \section{Methods}\label{methods}}
