@@ -338,7 +338,7 @@ function.
 \[
 \begin{aligned}
 \boldsymbol{\mathrm{D}}_{{\beta}^{*}}J* &= 
-\sum_{i=1}^{n} - \frac{1}{\sigma^2} \{-\tilde{\mathbb{E}}(x_i)y_i + \tilde{\mathbb{E}}(x_ix_i^{\top})\beta^{*}\} \\
+\sum_{i=1}^{n} - \frac{1}{\sigma^2} \{-\tilde{\mathbb{E}}(x_i^{*})y_i + \tilde{\mathbb{E}}(x_i^{*}x_i^{*\top})\beta^{*}\} \\
 \boldsymbol{\mathrm{D}}_{{\sigma}^2}J* &=
 \sum_{i=1}^{n} \Big\{ - \frac{1}{2\sigma^2} + \frac{1}{2\sigma^4} \tilde{\mathbb{E}}\big((y_i-x^{*\top}\beta^{*})^2\big) \Big\}\\
 \boldsymbol{\mathrm{D}}_{\mu}J* &= \Sigma^{-1} \sum_{i=1}^{n} \Big\{\tilde{\mathbb{E}}(x_i) - \mu \Big\}\\
@@ -346,9 +346,11 @@ function.
 \sum_{i=1}^{n} -\frac{1}{2} \Big\{ \Sigma^{-1} - \Sigma^{-1} \tilde{\mathbb{E}}\big((x_i-\mu)^2\big) \Sigma^{-1} \Big\}
 \end{aligned}
 \] By setting the first derivative to 0, we obtained the closed-form
-estimator. It is really help to use \emph{The Matrix Cook}
+estimator. For a simple linear regression case, we can replace the
+\(\mu\) and \(\Sigma\) with scalars \(\mu_1\) and \(\sigma_{1}^{2}\). It
+is helpful to use \emph{The Matrix Cook}
 {[}\protect\hyperlink{ref-petersen2008matrix}{5}{]} as the reference to
-support linear algebra calculation in the derivation.
+support linear algebra calculation during the derivation.
 
 \hypertarget{standard-error-confidence-interval}{%
 \subsubsection{Standard Error \& Confidence
@@ -370,16 +372,39 @@ in the simulation studies.
 \hypertarget{simulation-studies}{%
 \section{Simulation Studies}\label{simulation-studies}}
 
+We designed a series of numerical simulations to evaluate the
+performance of EM-LM and compare it with the CC approach. Each instance
+of the simulated dataset is obtained from a two step procedure. In the
+first step, we generate the full dataset from a response model as
+follows. \[
+y_i = \beta_0 + x_{i}^{\top}\beta + \epsilon_i
+\] where \(i = 1,...,N\).
+\(\forall i, x_i \sim \mathcal{N}(\mu, \Sigma)\) and
+\(\epsilon_i \sim N(0, \sigma^2)\). In the second step, we generate the
+\(n \times p\) random matrix \(R\) to indicate the observation of \(X\).
+Each element in the matrix, \(R_{ij}\), follows a Bernoulli distribution
+with probability \(p_{ij}\). If the missingness mechanism is MCAR,
+\(p_{ij}\) is a constant for all \(i\); if the missingness mechanism is
+MAR, \(p_{ij}\)'s values are calculated through a logistic regression
+depending on other variables, such as \(y\) or any other column of
+\(X\).
+
 \hypertarget{simple-linear-regression}{%
 \subsection{Simple Linear Regression}\label{simple-linear-regression}}
 
-Parameter setting: {[}todo{]}
+In of simulations of this section, the simulated data are based on a
+fixed set of population parameters shown below. \[
+\mu_1 = 10,~\sigma_{1}^{2} = 25,~\beta_0 = 10,~\beta_1 = 2
+\] We define \(1 - p\) as the missingness rate and \(\sigma\) as the
+noise scale. These two parameters are tuned in each instance of the
+simulation.
 
 \hypertarget{varied-missingness-rate-and-noise-scale}{%
 \subsubsection{Varied Missingness Rate and Noise
 Scale}\label{varied-missingness-rate-and-noise-scale}}
 
-Table 1-4 varied missingness rate \& noise scale: {[}todo{]}
+Tables 1-4 display the estimators' performance under varied missingness
+rates noise scales.
 
 \begin{table}[h]
 \caption{Missingness rate is 5\%, and noise scale is 5}
@@ -500,8 +525,8 @@ distribution}\label{misspecified-predictor-distribution}}
 A Normal distribution is used to model a right skewed data that was
 originally designed to follow a \(Exp(\lambda = 0.1)\). We assess
 estimators performance under misspecification with two missingness
-rates: 5\% and 50\%. Table 5-6 varied missingness rate \&
-misspecification: {[}todo{]}
+rates: 5\% and 50\%. Tables 5-6 display estimators' performance under
+varied missingness rates when \(X\) is misspecified.
 
 \begin{table}[h]
 \caption{Missingness rate is 5\%, noise scale is 5, and misspecified $X$}
@@ -565,17 +590,33 @@ Regression}\label{multivariate-linear-regression}}
 
 In the previous simulation studies for simple linear regression, we did
 experiments with MCAR missingness under various missingness rates and
-noise scales. In the multivariate linear regression setting, we designed
-two different MAR mechanisms for \(X\) to test the performance of the
-EM-LM.
+noise scales. Now, in the multivariate linear regression setting, we
+designed two different MAR mechanisms for \(X\) to test the performance
+of the EM-LM. In of simulations of this section, the simulated data are
+based on a fixed set of population parameters shown below. Moreover, we
+set the missingness scale as 5 for both simulations. Thus, the only
+condition we will tune is the missingness mechanism. \[
+\begin{aligned}
+\mu &= (10, 0, 10)^{\top} \\
+\Sigma &= \text{diag}(25, 1, 25) \\
+\beta_0 &= 10 \\
+\beta_1 &= (1, 3, 0)^{\top}
+\end{aligned}
+\]
 
 \hypertarget{mar-independent-of-y}{%
 \subsubsection{MAR independent of y}\label{mar-independent-of-y}}
 
-Table 7 missingness mechanism, logistic regression without including y:
-{[}todo{]}
+In this simulation, the missingness mechanism is designed as follows.
+Table 7 display estimators' performance under MAR missingness that is
+independent of the response variable. \[
+\begin{aligned}
+\mathrm{logit}(p_{i1}) &= -40 + X_{i2} \\
+p_{i2} &= 0.8
+\end{aligned}
+\]
 
-\begin{table*}[bp]
+\begin{table*}[hbp]
 \caption{Here you can type in your caption}
 \begingroup\fontsize{7}{9}\selectfont
 
@@ -603,10 +644,16 @@ Table 7 missingness mechanism, logistic regression without including y:
 \hypertarget{mar-dependent-of-y}{%
 \subsubsection{MAR dependent of y}\label{mar-dependent-of-y}}
 
-Table 8 missingness mechanism, logistic regression including y:
-{[}todo{]}
+In this simulation, the missingness mechanism is designed as follows.
+Table 8 display estimators' performance under MAR missingness that
+depends on the response variable. \[
+\begin{aligned}
+\mathrm{logit}(p_{i1}) &= -12 + y \\
+p_{i2} &= 0.8
+\end{aligned}
+\]
 
-\begin{table*}[bp]
+\begin{table*}[hbp]
 \caption{Here you can type in your caption}
 \begingroup\fontsize{7}{9}\selectfont
 
