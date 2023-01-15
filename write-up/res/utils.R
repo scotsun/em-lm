@@ -5,7 +5,7 @@ summarizing_table <-
            only_beta = FALSE,
            latex_opt = "HOLD_position") {
     if (only_beta) {
-      tbl_names <- c("",
+      tbl_names <- c("", "$\\sigma^2$",
                      paste0("$\\", paste("beta", seq(0, p), sep = "_"), "$"))
     } else {
       tbl_names <- c(
