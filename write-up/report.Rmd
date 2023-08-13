@@ -254,7 +254,7 @@ p_{i2} &= 0.8
 $$
 
 \begin{table*}[hbp]
-\caption{Here you can type in your caption}
+\caption{Missingness Mechanism is MCAR}
 ```{r, echo=FALSE}
 summarizing_table(multvariate_mcar, p = 3, num_methods = 2, latex_opt = NULL)
 ```
@@ -270,7 +270,7 @@ p_{i2} &= 0.8
 $$
 
 \begin{table*}[hbp]
-\caption{Here you can type in your caption}
+\caption{Missingness Mechanism is MAR}
 ```{r, echo=FALSE}
 summarizing_table(multvariate_mar, p = 3, num_methods = 2, latex_opt = NULL)
 ```
