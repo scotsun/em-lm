@@ -7,7 +7,6 @@ author: |
 output: 
     pdf_document:
       number_sections: yes
-      keep_tex: yes
       extra_dependencies: ["stfloats"]
 geometry: margin=2cm
 classoption: twocolumn
